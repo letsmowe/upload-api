@@ -1,7 +1,7 @@
 {
-  "name": "base",
-  "version": "1.0.0",
-  "description": "Mowe Foundation Base",
+  "name": "upload-api",
+  "version": "0.0.1",
+  "description": "Mowe Upload API",
   "main": "GulpFile.js",
   "devDependencies": {
     "browser-sync": "^2.12.5",
@@ -21,19 +21,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mowekabanas/base.git"
+    "url": "https://github.com/letsmowe/upload-api.git"
   },
   "keywords": [
     "letsmowe",
     "mowe",
-    "foundation",
-    "base"
+    "upload",
+    "api"
   ],
-  "author": {
-    "name": "Eduardo Barros",
-    "email": "dbajrs@noibe.com",
-    "url": "dbarjs.noibe.com"
-  },
+  "author": "Eduardo Barros <dbajrs@noibe.com> (dbarjs.noibe.com)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/mowekabanas/base/issues"
