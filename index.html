@@ -18,6 +18,45 @@
 
 <h1>Hello World</h1>
 
+<input type="text" id="txt" placeholder="insira o nome"/>
+<input type="file" id="file" placeholder="insira o nome"/>
+<button id="btn">Call API!</button>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+
+<script>
+
+	var btn = document.getElementById('btn');
+
+	btn.addEventListener('click', function (ev) {
+
+		var txtValue = document.getElementById('txt').value;
+		var fileValue = document.getElementById('file').value;
+
+		$.ajax({
+			url: 'http://localhost/upload-api/api/index.php',
+			method: 'post',
+			data: {
+				txt: txtValue,
+				file: fileValue
+			},
+			success: function (data) {
+
+				console.log(data);
+
+			},
+			error: function (data) {
+
+				console.log('error');
+				console.log(data);
+
+			}
+		})
+
+	});
+
+</script>
+
 </body>
 
 </html>
