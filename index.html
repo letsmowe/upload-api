@@ -17,9 +17,14 @@
 <body>
 
 <h1>Hello World</h1>
+<!--<form action="api/index.php" method="post" enctype="multipart/form-data">-->
+<!--<input type="text" name="txt" id="txt" placeholder="insira o nome"/>-->
+<!--<input type="file" name="file" id="file" placeholder="insira um arquivo"/>-->
+<!--<input type="submit" id="btn" value="Call API"/>-->
+<!--</form>-->
 
-<input type="text" id="txt" placeholder="insira o nome"/>
-<input type="file" id="file" placeholder="insira o nome"/>
+<input type="text" name="texto" id="texto" placeholder="insira o nome"/>
+<input type="file" name="file" id="file" placeholder="insira um arquivo"/>
 <button id="btn">Call API!</button>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
@@ -30,29 +35,47 @@
 
 	btn.addEventListener('click', function (ev) {
 
-		var txtValue = document.getElementById('txt').value;
-		var fileValue = document.getElementById('file').value;
+		//var txtValue = document.getElementById('texto').value; //se o elemento não é um Blob ou um file, é convertido para string
+		var fileValue = document.getElementById('file').files[0];
 
-		$.ajax({
-			url: 'http://localhost/upload-api/api/index.php',
-			method: 'post',
-			data: {
-				txt: txtValue,
-				file: fileValue
-			},
-			success: function (data) {
-
-				console.log(data);
-
-			},
-			error: function (data) {
-
-				console.log('error');
-				console.log(data);
-
+		//Requisição POST utilizando ajax (puro)
+		var formData = new FormData();
+		//formData.append("texto", txtValue);
+		formData.append("file", fileValue);
+		var ajaxReq = new XMLHttpRequest();
+		ajaxReq.open("POST", "http://localhost/upload-api/api/index.php");
+		//ajaxReq.setRequestHeader("Content-Type", "multipart\/form-data;");
+		ajaxReq.send(formData);
+		ajaxReq.onload = function () {
+			if (ajaxReq.status >= 200 && ajaxReq.status < 400) {
+				console.log("sucesso");
+				console.log(ajaxReq.responseText);
+			} else {
+				console.log("erro");
 			}
-		})
+		};
 
+		//Requisição POST utilizando ajax (jquery)
+//		$.ajax({
+//			type: 'post',
+//			url: 'http://localhost/upload-api/api/index.php',
+//			dataType: 'JSON',
+//			data: {
+//				txt: txtValue,
+//				file: fileValue
+//			},
+//
+//			success: function (data) {
+//				console.log("sucesso");
+//				console.log(data);
+//			},
+//
+//			error: function (data) {
+//				console.log('erro');
+//				console.log(data);
+//
+//			}
+//		})
 	});
 
 </script>
