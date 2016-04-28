@@ -35,12 +35,12 @@
 
 	btn.addEventListener('click', function (ev) {
 
-		//var txtValue = document.getElementById('texto').value; //se o elemento não é um Blob ou um file, é convertido para string
+		var txtValue = document.getElementById('texto').value; //se o elemento não é um Blob ou um file, é convertido para string
 		var fileValue = document.getElementById('file').files[0];
 
 		//Requisição POST utilizando ajax (puro)
 		var formData = new FormData();
-		//formData.append("texto", txtValue);
+		formData.append("texto", txtValue);
 		formData.append("file", fileValue);
 		var ajaxReq = new XMLHttpRequest();
 		ajaxReq.open("POST", "http://localhost/upload-api/api/index.php");
@@ -48,8 +48,15 @@
 		ajaxReq.send(formData);
 		ajaxReq.onload = function () {
 			if (ajaxReq.status >= 200 && ajaxReq.status < 400) {
-				console.log("sucesso");
-				console.log(ajaxReq.responseText);
+				try {
+					var o = JSON.parse(ajaxReq.responseText);
+					console.log(o);
+				} catch (ex) {
+					console.log("Erro parse: " + ex);
+				}
+					var img = document.createElement('img');
+				img.src = '../static/' + o.name;
+				document.body.appendChild(img);
 			} else {
 				console.log("erro");
 			}
