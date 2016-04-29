@@ -25,6 +25,11 @@ class Response {
 	public $files;
 	public $req;
 
+	public function getFiles()
+	{
+		return $this->files;
+	}
+
 	/**
 	 * Response constructor.
 	 * @param $files {array}
@@ -52,22 +57,26 @@ class File {
 
 	/**
 	 * File constructor.
-	 * @param $reqs array
+	 * @param {Array} $reqs
 	 */
 	public function __construct($reqs)
 	{
+
 		if (count($reqs['file'])) {
+
 			$this->origin = $reqs['file']['name'];
 			$this->temp_path = $reqs['file']['tmp_name'];
 			$this->handleFile($this->origin, $this->temp_path);
+
 		} else {
 			$this->returnFile($reqs['name']);
 		}
+
 	}
 
 	/**
-	 * @param $origin (nome de origem, no envio)
-	 * @param $temp_path (caminho, do diretório temporário)
+	 * @param {} $origin
+	 * @param {} $temp_path
 	 */
 	public function handleFile ($origin, $temp_path)
 	{
@@ -77,37 +86,51 @@ class File {
 		$upfile = random_int(0, 999999);
 
 		if (move_uploaded_file($temp_path, $updir . $upfile . "." . $upext)) {
+
 			$this->name = $upfile . "." . $upext;
+
 			echo $this->toJSON();
 		}
 	}
 
 	/**
+	 * Return JSON string with information about file
+	 * Get file name through url GET method and search local uploaded files folder for it
 	 * @param $name
 	 */
-	public function returnFile($name) {
+	public function returnFile($name)
+	{
 		$dir = '/var/www/static/';
 		$files = scandir($dir);
 		$filepath = false;
+
 		$i = 0;
+
 		do {
+
 			if(!is_dir($files[$i]) && $files[$i] != ".." && $files[$i] != ".") {
+
 				$info = pathinfo($files[$i]);
+
 				if ($info['filename'] == $name)
 					$filepath = $info['basename'];
 				else
 					$i++;
-			} else
+
+			} else {
 				$i++;
+			}
+
 		} while ($files[$i] != $filepath);
 
 		if ($filepath) {
-			$this->origin = $name;
-			$this->name = $name;
-			$this->temp_path = $dir . $filepath;
-			echo $this->toJSON();
-		} else
+			$about = array('name' => $name, 'origin' => $filepath, 'path' => $dir . $filepath);
+
+			echo json_encode($about);
+		} else {
 			echo json_encode(array());
+		}
+
 	}
 
 	/**
