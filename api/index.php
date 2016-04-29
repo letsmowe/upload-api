@@ -52,14 +52,17 @@ class File {
 
 	/**
 	 * File constructor.
-	 * @param $origin
-	 * @param $temp_path
+	 * @param $reqs array
 	 */
-	public function __construct($origin, $temp_path)
+	public function __construct($reqs)
 	{
-		$this->origin = $origin;
-		$this->temp_path = $temp_path;
-		$this->handleFile($this->origin,$this->temp_path);
+		if (count($reqs['file'])) {
+			$this->origin = $reqs['file']['name'];
+			$this->temp_path = $reqs['file']['tmp_name'];
+			$this->handleFile($this->origin, $this->temp_path);
+		} else {
+			$this->returnFile($reqs['name']);
+		}
 	}
 
 	/**
@@ -80,6 +83,34 @@ class File {
 	}
 
 	/**
+	 * @param $name
+	 */
+	public function returnFile($name) {
+		$dir = '/var/www/static/';
+		$files = scandir($dir);
+		$filepath = false;
+		$i = 0;
+		do {
+			if(!is_dir($files[$i]) && $files[$i] != ".." && $files[$i] != ".") {
+				$info = pathinfo($files[$i]);
+				if ($info['filename'] == $name)
+					$filepath = $info['basename'];
+				else
+					$i++;
+			} else
+				$i++;
+		} while ($files[$i] != $filepath);
+
+		if ($filepath) {
+			$this->origin = $name;
+			$this->name = $name;
+			$this->temp_path = $dir . $filepath;
+			echo $this->toJSON();
+		} else
+			echo json_encode(array());
+	}
+
+	/**
 	 * @return string
 	 */
 	public function toJSON()
@@ -88,16 +119,16 @@ class File {
 	}
 }
 
+
+
 try {
 	if ($_GET['callback'])
 		echo $_GET['callback'] . '(' . json_encode($_GET) . ')'; //jsonp apenas requisições get
 	else if (count($_POST)) { //$_POST é um array
 		//ignorando o campo texto por enquanto:
-		$temppath = $_FILES["file"]["tmp_name"];
-		$originname = $_FILES["file"]["name"];
-		$file = new File($originname, $temppath);
+		$file = new File($_FILES);
 	} else {
-		//get? > listar arquivos
+		$file = new File($_GET);
 	}
 } catch (Exception $e) {
 	echo "Erro: " . $e->getMessage();
