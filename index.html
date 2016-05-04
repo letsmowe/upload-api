@@ -17,14 +17,16 @@
 <body>
 
 <h1>Hello World</h1>
+
+<!-- Convenient method of submit - not ajax-->
 <!--<form action="api/index.php" method="post" enctype="multipart/form-data">-->
 <!--<input type="text" name="txt" id="txt" placeholder="insira o nome"/>-->
 <!--<input type="file" name="file" id="file" placeholder="insira um arquivo"/>-->
 <!--<input type="submit" id="btn" value="Call API"/>-->
 <!--</form>-->
 
-<input type="text" name="texto" id="texto" placeholder="insira o nome"/>
-<input type="file" name="file" id="file" placeholder="insira um arquivo"/>
+<input type="text" name="texto" id="texto" placeholder="Insira o nome"/>
+<input type="file" name="file" id="file" placeholder="Insira um arquivo"/>
 <button id="btn">Call API!</button>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
@@ -38,7 +40,7 @@
 		var txtValue = document.getElementById('texto').value; //se o elemento não é um Blob ou um file, é convertido para string
 		var fileValue = document.getElementById('file').files[0];
 
-		//Requisição POST utilizando ajax (puro)
+		// POST request through ajax (without jquery)
 		var formData = new FormData();
 		formData.append("texto", txtValue);
 		formData.append("file", fileValue);
@@ -52,7 +54,7 @@
 					var o = JSON.parse(ajaxReq.responseText);
 					console.log(o);
 				} catch (ex) {
-					console.log("Erro parse: " + ex);
+					console.log("Error parse: " + ex);
 				}
 					var img = document.createElement('img');
 				img.src = '../static/' + o.name;
@@ -62,7 +64,7 @@
 			}
 		};
 
-		//Requisição POST utilizando ajax (jquery)
+		// POST request through ajax (with jquery)
 //		$.ajax({
 //			type: 'post',
 //			url: 'http://localhost/upload-api/api/index.php',
