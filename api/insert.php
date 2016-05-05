@@ -46,69 +46,6 @@ class Response {
 	}
 }
 
-Class Persistence {
-	public $timestamp;
-	public $ip;
-	public $useragent;
-	public $post_meta; //array com metadados da requisição
-	public $post_files; //array com (possíveis vários) arquivos
-
-	/**
-	 * Persistence constructor
-	 * @param {Array} $reqs ($_POST informations)
-	 */
-	public function __construct($reqs)
-	{
-
-		if (count($_POST)) {
-
-			$timestamp = $_SERVER['REQUEST_TIME'];
-			$ip = $_SERVER['REMOTE_ADDR'];
-			$useragent = $_SERVER['HTTP_USER_AGENT'];
-
-			$this->timestamp = $timestamp;
-			$this->ip = $ip;
-			$this->useragent = $useragent;
-			/*
-						$this->origin = $reqs['file']['name'];
-						$this->temp_path = $reqs['file']['tmp_name'];
-						$this->handleFile($this->origin, $this->temp_path);
-			*/		} else {
-			$this->returnFile($reqs['name']);
-		}
-
-	}
-
-	/**
-	 * Handle $_POST info to get meta info
-	 * @param {Array} $reqs ($_POST informations)
-	 */
-	public function handlePost($reqs) {
-
-		$metadados = array(); /* == $this->$post_meta */
-		$i = 0;
-
-		foreach ($reqs as $name => $value)
-		{
-			if ($name != 'file['. $i .']') { //or 'file' only, if not array
-
-				$meta = new Meta($name,$value);
-				$metadados[] = $meta->toJSON();
-				$i++;
-
-			} else {
-				//here come file handle
-			}
-		}
-		//if there is post_meta
-		$this->post_meta = $metadados;
-		//if there is post_files
-		//$this->post_file = $files;
-
-	}
-
-}
-
 Class Meta {
 	public $meta_name;
 	public $meta_value;
@@ -133,44 +70,84 @@ Class Meta {
 }
 
 class File {
-	public $origin;
-	public $temp_path;
-	public $name;
+	public $name; // only the file name on server
+	public $temp_path; // temp file path on temp folder
+	public $path;
+	public $size;
+	public $origin; // name + extension on client machine
+	public $extension;
+	public $type;
+	public $width;
+	public $height;
 
 	/**
-	 * File constructor.
-	 * @param {Array} $reqs
+	 * File constructor
+	 * Receive a request as param from Persistence.handlePost($reqs)
+	 * and verify if the request is a file array (or contain elements
+	 * like so)
+	 *
+	 * @param {Array} $reqs (like $_POST or $FILES)
+	 * @param {int} $numfile (number of the file)
 	 */
-	public function __construct($reqs)
+	public function __construct($reqs, $numfile)
 	{
 
-		if (count($reqs['file'])) {
-			$this->origin = $reqs['file']['name'];
-			$this->temp_path = $reqs['file']['tmp_name'];
-			$this->handleFile($this->origin, $this->temp_path);
+		if(count($reqs['file'])) { // same as $_FILES['file']
+
+			$this->handleFile($reqs, $numfile); // or $reqs['file'] as param, but ignored for clarity
+
 		} else {
 			$this->returnFile($reqs['name']);
+			echo 'yep';
 		}
 
 	}
 
 	/**
-	 * @param {} $origin
-	 * @param {} $temp_path
+	 * @param {} $reqs
+	 * @param {} $i
 	 */
-	public function handleFile ($origin, $temp_path)
+	public function handleFile ($reqs, $i)
 	{
+
+		$this->temp_path = $reqs['file']['tmp_name'][$i]; // temp filename on server
+		$this->size = $reqs['file']['size'][$i]; // file size in bytes
+		$this->origin = $reqs['file']['name'][$i]; // original name on client machine
+		$this->type = $reqs['file']['type'][$i]; // mime type of the file (ex. "image/jpeg")
+
+
 		$updir = '/var/www/static/';
-		$info = pathinfo($origin);
+		$info = pathinfo($this->origin);
 		$upext = $info['extension'];
-		$upfile = random_int(0, 999999);
+		$upname = random_int(0, 999999);
 
-		if (move_uploaded_file($temp_path, $updir . $upfile . "." . $upext)) {
+		$this->extension = $upext;
 
-			$this->name = $upfile . "." . $upext;
+		try {
 
-			echo $this->toJSON();
+			if (move_uploaded_file($this->temp_path, $updir . $upname . "." . $upext)) {
+				$this->name = $upname;
+				$this->returnFile($this->name);
+			}
+
+		} catch (Exception $er_move) {
+			echo $er_move->getMessage();
 		}
+
+		try {
+
+			if (exif_imagetype($this->path)) {
+				$dimension = getimagesize($this->path);
+				$this->width = $dimension[0]; // getimagesize returns an array, 0 is width
+				$this->height = $dimension[1]; // 1 is height
+			} else {
+				$this->width = $this->height = 0;
+			}
+
+		} catch (Exception $er_type) {
+			echo $er_type->getMessage();
+		}
+
 	}
 
 	/**
@@ -182,7 +159,7 @@ class File {
 	{
 		$dir = '/var/www/static/';
 		$files = scandir($dir);
-		$filepath = false;
+		$completename = false;
 
 		$i = 0;
 
@@ -193,7 +170,7 @@ class File {
 				$info = pathinfo($files[$i]);
 
 				if ($info['filename'] == $name)
-					$filepath = $info['basename'];
+					$completename = $info['basename'];
 				else
 					$i++;
 
@@ -201,14 +178,10 @@ class File {
 				$i++;
 			}
 
-		} while ($files[$i] != $filepath);
+		} while ($files[$i] != $completename);
 
-		if ($filepath) {
-			$about = array('name' => $name, 'origin' => $filepath, 'path' => $dir . $filepath);
-
-			echo json_encode($about);
-		} else {
-			echo json_encode(array());
+		if ($completename) {
+			$this->path = $dir . $completename;
 		}
 
 	}
@@ -222,19 +195,86 @@ class File {
 	}
 }
 
+Class Persistence {
+	public $timestamp;
+	public $ip;
+	public $useragent;
+	public $post_meta; //array com metadados da requisição
+	public $post_files; //array com (possíveis vários) arquivos
+
+	/**
+	 * Persistence constructor
+	 * @param {Array} $reqs ($_POST informations)
+	 */
+	public function __construct($reqs)
+	{
+
+		if (count($_POST)) {
+			$this->handlePost($reqs);
+		} else {
+			//$this->returnFile($reqs['name']);
+		}
+
+	}
+
+	/**
+	 * Handle $_POST info to get meta info
+	 * @param {Array} $reqs ($_POST informations)
+	 */
+	public function handlePost($reqs) {
+
+		$this->timestamp = $_SERVER['REQUEST_TIME'];
+		$this->ip = $_SERVER['REMOTE_ADDR'];
+		$this->useragent = $_SERVER['HTTP_USER_AGENT'];
+
+		$metadados = array(); /* == $this->post_meta */
+		$datafile = array(); /* == $this->post_files */
+
+		foreach ($reqs as $name => $value)
+		{
+			$meta = new Meta($name,$value);
+			$metadados[] = $meta;
+		}
+
+		$i = 0;
+		while ($_FILES['file']['name'][$i] != null) {
+			$file = new File($_FILES, $i); //['file']['name'][$i] (appends fields to an array, not to files)
+			$datafile[] = $file;
+			$i++;
+		}
+
+		//if there is post_meta
+		$this->post_meta = $metadados;
+		//if there is post_files
+		$this->post_files = $datafile;
+
+	}
+
+	/**
+	 * @return string
+	 */
+	public function toJSON()
+	{
+		return json_encode($this);
+	}
+
+}
+
+
 try {
-	if ($_GET['callback'])
+	if ($_GET['callback']) {
+
 		echo $_GET['callback'] . '(' . json_encode($_GET) . ')'; //jsonp apenas requisições get
-	else if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+	} else if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
 		$insert = new Persistence($_POST);
+		echo $insert->toJSON();
 
-		//$file = new File($_FILES); //files retorna um array
-
-		//Response
-
-		$file->getFileInfo();
 	} else {
+
 		$file = new File($_GET);
+
 	}
 } catch (Exception $e) {
 	echo "Erro: " . $e->getMessage();

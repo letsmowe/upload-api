@@ -37,7 +37,7 @@
 
 		var authorValue = document.getElementById('author').value;
 		var ageValue = document.getElementById('age').value;
-		var genderValue = document.getElementsByName('gender').value;
+		var genderValue = document.querySelector("input[name='gender']:checked").value;
 		var filesValue = document.getElementById('file').files;
 
 		// POST requisition through ajax (without jquery)
@@ -47,7 +47,6 @@
 		formData.append("gender", genderValue);
 		for (var i = 0; i < filesValue.length; i++)
 			formData.append("file[" + i + "]", filesValue[i]);
-		// ^ maybe works without array
 
 		var ajaxReq = new XMLHttpRequest();
 		ajaxReq.open("POST", "http://localhost/upload-api/api/insert.php");
@@ -55,8 +54,7 @@
 		ajaxReq.onload = function () {
 			if (ajaxReq.status >= 200 && ajaxReq.status < 400) {
 				try {
-					var o = JSON.parse(ajaxReq.responseText);
-					console.log(o);
+					console.log(ajaxReq.responseText);
 				} catch (ex) {
 					console.log("Error parse: " + ex);
 				}
