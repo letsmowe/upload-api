@@ -20,39 +20,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 	exit(0);
 }
 
-class Response {
-
-	public $arg;
-	public $req;
-
-
-	/**
-	 * Response constructor
-	 * @param $files {array}
-	 * @param $req {array}
-	 */
-	public function __construct($files, $req)
-	{
-		$this->files = $files;
-		$this->req = $req;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function toJSON()
-	{
-		return json_encode($this);
-	}
-}
 
 Class Meta {
 	public $meta_name;
 	public $meta_value;
 
 	/**
-	 * @param {String} $name (field name)
-	 * @param {String} $value (field value)
+	 * Receive fields name and value about post "metadata" (form fields)
+	 * @param string $name field name
+	 * @param string $value field value
 	 */
 	public function __construct($name, $value)
 	{
@@ -82,52 +58,60 @@ class File {
 
 	/**
 	 * File constructor
-	 * Receive a request as param from Persistence.handlePost($reqs)
-	 * and verify if the request is a file array (or contain elements
-	 * like so)
 	 *
-	 * @param {Array} $reqs (like $_POST or $FILES)
-	 * @param {int} $numfile (number of the file)
+	 * Receive a request as param from Persistence.handlePost
+	 * and verify if the request is a file array (or contain elements
+	 * like so) and get information about the specific file ($numfile param)
+	 *
+	 * @param array $reqs $_FILES object array
+	 * @param int $numfile number of the file
 	 */
 	public function __construct($reqs, $numfile)
 	{
 
 		if(count($reqs['file'])) { // same as $_FILES['file']
 
-			$this->handleFile($reqs, $numfile); // or $reqs['file'] as param, but ignored for clarity
+			$this->handleFile($reqs, $numfile); // or $reqs['file'] as param, but suppressed for later clarity
 
 		} else {
-			$this->returnFile($reqs['name']);
-			echo 'yep';
+
+			// function to return information
+
 		}
 
 	}
 
 	/**
-	 * @param {} $reqs
-	 * @param {} $i
+	 * Get params from constructor, handle file information and store it on folder
+	 *
+	 * @param array $reqs $_FILES object array
+	 * @param int $i number of the file
 	 */
 	public function handleFile ($reqs, $i)
 	{
 
+		/** tmp_name, size, name and type are parsed from $_FILE object */
 		$this->temp_path = $reqs['file']['tmp_name'][$i]; // temp filename on server
 		$this->size = $reqs['file']['size'][$i]; // file size in bytes
 		$this->origin = $reqs['file']['name'][$i]; // original name on client machine
 		$this->type = $reqs['file']['type'][$i]; // mime type of the file (ex. "image/jpeg")
 
-
 		$updir = '/var/www/static/';
 		$info = pathinfo($this->origin);
-		$upext = $info['extension'];
-		$upname = random_int(0, 999999);
-
+		$upext = $info['extension']; /** extension is get through the temp uploaded file */
 		$this->extension = $upext;
+		$upname = $this->generateSafeString(11); /** create a safe string to name file on static folder */
 
 		try {
 
+			/*
+			 * Try to move uploaded file from tmp folder to a new static folder,
+			 * if success, set other infos as path of the uploaded file
+			 * on the static folder and its new created name
+			 */
 			if (move_uploaded_file($this->temp_path, $updir . $upname . "." . $upext)) {
 				$this->name = $upname;
-				$this->returnFile($this->name);
+				$this->path = $updir . $upname . "." . $upext;
 			}
 
 		} catch (Exception $er_move) {
@@ -136,12 +120,16 @@ class File {
 
 		try {
 
+			/*
+			 * With path information set, check if the file is an image, if it is,
+			 * get infos as width and height
+			*/
 			if (exif_imagetype($this->path)) {
 				$dimension = getimagesize($this->path);
 				$this->width = $dimension[0]; // getimagesize returns an array, 0 is width
 				$this->height = $dimension[1]; // 1 is height
 			} else {
-				$this->width = $this->height = 0;
+				$this->width = $this->height = 0; //if not image, set both 0
 			}
 
 		} catch (Exception $er_type) {
@@ -151,38 +139,24 @@ class File {
 	}
 
 	/**
-	 * Return JSON string with information about file
-	 * Get file name through url GET method and search local uploaded files folder for it
-	 * @param $name
+	 * create a safe string of said size and returns it
+	 *
+	 * Create an array of chars from other array of chars (defined),
+	 *  and return implode the array ("glue" array elements like a string)
+	 *
+	 * @param int $sizeid size of string
+	 * @return string random char-number string
 	 */
-	public function returnFile($name)
+	public function generateSafeString($sizeid)
 	{
-		$dir = '/var/www/static/';
-		$files = scandir($dir);
-		$completename = false;
 
-		$i = 0;
+		$chars = "ABCDEFGHJKLMPQRSTUVWXYZabcdefghkmnpqrstuvwxyz23456789-_";
+		$id = array();
 
-		do {
+		for ($i = 0; $i < $sizeid; $i++)
+			$id[$i] = $chars[mt_rand(0 , strlen($chars) - 1)];
 
-			if(!is_dir($files[$i]) && $files[$i] != ".." && $files[$i] != ".") {
-
-				$info = pathinfo($files[$i]);
-
-				if ($info['filename'] == $name)
-					$completename = $info['basename'];
-				else
-					$i++;
-
-			} else {
-				$i++;
-			}
-
-		} while ($files[$i] != $completename);
-
-		if ($completename) {
-			$this->path = $dir . $completename;
-		}
+		return implode("",$id);
 
 	}
 
@@ -199,53 +173,74 @@ Class Persistence {
 	public $timestamp;
 	public $ip;
 	public $useragent;
-	public $post_meta; //array com metadados da requisição
-	public $post_files; //array com (possíveis vários) arquivos
+	public $post_meta; // array with request metadata
+	public $post_files; // array with (may be more than one) file
 
 	/**
 	 * Persistence constructor
-	 * @param {Array} $reqs ($_POST informations)
+	 *
+	 * Called to manipulate and store infos and files upload from form
+	 *
+	 * @param array $reqs $_POST info
 	 */
 	public function __construct($reqs)
 	{
 
 		if (count($_POST)) {
+
 			$this->handlePost($reqs);
+
 		} else {
-			//$this->returnFile($reqs['name']);
+
+			// function to return information
+
 		}
 
 	}
 
 	/**
-	 * Handle $_POST info to get meta info
-	 * @param {Array} $reqs ($_POST informations)
+	 * set info about post metadata and file data
+	 *
+	 * Handle $_POST info to get metadata (form fields values)
+	 *  and $_FILES info to get information about the file(s)
+	 *
+	 * @param array $reqs $_POST informations
 	 */
-	public function handlePost($reqs) {
+	public function handlePost($reqs)
+	{
 
-		$this->timestamp = $_SERVER['REQUEST_TIME'];
+		/*
+		 * get info about request (if any);
+		 * timestamp, ip and useragent are parsed from header request
+		*/
+		$this->timestamp = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
 		$this->ip = $_SERVER['REMOTE_ADDR'];
 		$this->useragent = $_SERVER['HTTP_USER_AGENT'];
 
-		$metadados = array(); /* == $this->post_meta */
-		$datafile = array(); /* == $this->post_files */
+		/* Create an array for metadata fields and files data */
+		$metadados = array();
+		$datafile = array();
 
+		/* Populate metadados array with info about form fields (VERTICAL) */
 		foreach ($reqs as $name => $value)
 		{
+
 			$meta = new Meta($name,$value);
 			$metadados[] = $meta;
+
 		}
 
+		/* Populate datafile array with info about files */
 		$i = 0;
 		while ($_FILES['file']['name'][$i] != null) {
-			$file = new File($_FILES, $i); //['file']['name'][$i] (appends fields to an array, not to files)
+
+			$file = new File($_FILES, $i); //['file']['name'][$i] (appends fields to an array, not to [file])
 			$datafile[] = $file;
 			$i++;
+
 		}
 
-		//if there is post_meta
 		$this->post_meta = $metadados;
-		//if there is post_files
 		$this->post_files = $datafile;
 
 	}
@@ -260,11 +255,11 @@ Class Persistence {
 
 }
 
-
 try {
+
 	if ($_GET['callback']) {
 
-		echo $_GET['callback'] . '(' . json_encode($_GET) . ')'; //jsonp apenas requisições get
+		echo $_GET['callback'] . '(' . json_encode($_GET) . ')'; //jsonp only get requests
 
 	} else if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
@@ -273,12 +268,10 @@ try {
 
 	} else {
 
-		$file = new File($_GET);
+		// to return information
 
 	}
+
 } catch (Exception $e) {
 	echo "Erro: " . $e->getMessage();
 }
-
-//	if ($_POST["file"] != "undefined")
-//		echo json_encode(array($_FILES, $_POST));

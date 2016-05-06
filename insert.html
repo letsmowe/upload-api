@@ -21,9 +21,9 @@
 <input type="text" name="author" id="author" placeholder="Insira o nome"/><br>
 <input type="text" name="age" id="age" placeholder="Insira a idade"/><br>
 <p>Selecione:</p>
-<input type="radio" name="gender" id="male" value="m" /> <label for="male">male</label><br>
+<input type="radio" name="gender" id="male" value="m" /> <label for="male">male</label>
 <input type="radio" name="gender" id="female" value="f" /> <label for="female">female</label><br>
-<input type="file" name="file" id="file" placeholder="Insira os arquivos" multiple="true"/><br><br>
+<input type="file" name="file" id="file" placeholder="Insira os arquivos" multiple="true"/><br>
 
 <button id="btn">Call API!</button>
 
@@ -37,7 +37,19 @@
 
 		var authorValue = document.getElementById('author').value;
 		var ageValue = document.getElementById('age').value;
-		var genderValue = document.querySelector("input[name='gender']:checked").value;
+
+		if (ageValue != parseInt(ageValue, 10)) {
+			alert("informe uma idade valida");
+			return;
+		}
+
+		if (!document.querySelector("input[name='gender']:checked")) {
+			alert("selecione um genero");
+			return;
+		} else {
+			var genderValue = document.querySelector("input[name='gender']:checked").value;
+		}
+
 		var filesValue = document.getElementById('file').files;
 
 		// POST requisition through ajax (without jquery)
