@@ -150,7 +150,10 @@ class File {
 	public function generateSafeString($sizeid)
 	{
 
-		$chars = "ABCDEFGHJKLMPQRSTUVWXYZabcdefghkmnpqrstuvwxyz23456789-_";
+		$chars = "ABCDEFGHJKLMPQRSTUVWXYZ";
+		$chars .= "abcdefghkmnpqrstuvwxyz";
+		$chars .= "0123456789-_";
+
 		$id = array();
 
 		for ($i = 0; $i < $sizeid; $i++)
