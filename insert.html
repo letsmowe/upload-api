@@ -18,7 +18,9 @@
 
 <h3>Cadastro de informações</h3>
 
-<input type="text" name="author" id="author" placeholder="Insira o nome"/><br>
+<span id="erro" style="color: red;"></span>
+<input type="text" name="firstname" id="firstname" placeholder="Insira o primeiro"><br>
+<input type="text" name="lastname" id="lastname" placeholder="Insira o segundo"><br>
 <input type="text" name="age" id="age" placeholder="Insira a idade"/><br>
 <p>Selecione:</p>
 <input type="radio" name="gender" id="male" value="m" /> <label for="male">male</label>
@@ -27,24 +29,36 @@
 
 <button id="btn">Call API!</button>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
-
 <script>
 
 	var btn = document.getElementById('btn');
 
 	btn.addEventListener('click', function (ev) {
 
-		var authorValue = document.getElementById('author').value;
-		var ageValue = document.getElementById('age').value;
+		var erro = document.getElementById('erro');
+		var firstname = document.getElementById('firstname');
+		var lastname = document.getElementById('lastname');
 
-		if (ageValue != parseInt(ageValue, 10)) {
-			alert("informe uma idade valida");
+		if (!firstname.value.length) {
+			firstname.focus();
+			alert('Informe um nome');
 			return;
+		} else {
+			firstname = firstname.value;
+		}
+
+		var age = document.getElementById('age');
+
+		if (age.value != parseInt(age.value, 10)) { // if age.value is int base 10
+			age.focus();
+			alert('Informe uma idade válida');
+			return;
+		} else {
+			age = age.value;
 		}
 
 		if (!document.querySelector("input[name='gender']:checked")) {
-			alert("selecione um genero");
+			alert("Selecione um genero");
 			return;
 		} else {
 			var genderValue = document.querySelector("input[name='gender']:checked").value;
@@ -52,10 +66,19 @@
 
 		var filesValue = document.getElementById('file').files;
 
-		// POST requisition through ajax (without jquery)
+		if (!filesValue.length) {
+			alert("Selecione um arquivo");
+			return;
+		}
+
+		// POST request through ajax (without jquery)
 		var formData = new FormData();
-		formData.append("author", authorValue);
-		formData.append("age", ageValue);
+		formData.append("firstname", firstname);
+		if (lastname.value.length) {
+			lastname = lastname.value;
+			formData.append("lastname", lastname);
+		}
+		formData.append("age", age);
 		formData.append("gender", genderValue);
 		for (var i = 0; i < filesValue.length; i++)
 			formData.append("file[" + i + "]", filesValue[i]);
