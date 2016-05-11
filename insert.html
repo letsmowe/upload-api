@@ -18,70 +18,59 @@
 
 <h3>Cadastro de informações</h3>
 
-<span id="erro" style="color: red;"></span>
-<input type="text" name="firstname" id="firstname" placeholder="Insira o primeiro"><br>
-<input type="text" name="lastname" id="lastname" placeholder="Insira o segundo"><br>
-<input type="text" name="age" id="age" placeholder="Insira a idade"/><br>
-<p>Selecione:</p>
-<input type="radio" name="gender" id="male" value="m" /> <label for="male">male</label>
-<input type="radio" name="gender" id="female" value="f" /> <label for="female">female</label><br>
-<input type="file" name="file" id="file" placeholder="Insira os arquivos" multiple="true"/><br>
+<form id="upload-form" action="" method="post" enctype="multipart/form-data">
+	<input type="text" name="firstname" class="FormField" placeholder="Insira o primeiro"><br>
+	<input type="text" name="lastname" class="FormField" placeholder="Insira o segundo"><br>
+	<input type="text" name="age" class="FormField" placeholder="Insira a idade"/><br>
+
+	<p>Selecione:</p>
+	<label><input type="radio" name="gender" class="FormField" value="m" /> male</label>
+	<label><input type="radio" name="gender" class="FormField" value="f" /> female</label><br>
+	<input type="file" name="file" class="FormField" placeholder="Insira os arquivos" multiple="multiple"/><br>
+</form>
 
 <button id="btn">Call API!</button>
-
 <script>
 
 	var btn = document.getElementById('btn');
 
 	btn.addEventListener('click', function (ev) {
 
-		var erro = document.getElementById('erro');
-		var firstname = document.getElementById('firstname');
-		var lastname = document.getElementById('lastname');
-
-		if (!firstname.value.length) {
-			firstname.focus();
-			alert('Informe um nome');
-			return;
-		} else {
-			firstname = firstname.value;
-		}
-
-		var age = document.getElementById('age');
-
-		if (age.value != parseInt(age.value, 10)) { // if age.value is int base 10
-			age.focus();
-			alert('Informe uma idade válida');
-			return;
-		} else {
-			age = age.value;
-		}
-
-		if (!document.querySelector("input[name='gender']:checked")) {
-			alert("Selecione um genero");
-			return;
-		} else {
-			var genderValue = document.querySelector("input[name='gender']:checked").value;
-		}
-
-		var filesValue = document.getElementById('file').files;
-
-		if (!filesValue.length) {
-			alert("Selecione um arquivo");
-			return;
-		}
+		var form = document.getElementById('upload-form');
+		var fields;
 
 		// POST request through ajax (without jquery)
 		var formData = new FormData();
-		formData.append("firstname", firstname);
-		if (lastname.value.length) {
-			lastname = lastname.value;
-			formData.append("lastname", lastname);
+
+		// Set form data
+		for (var i = 0; i < form.length; i++) {
+			fields = form.querySelectorAll(".FormField");
+
+			if (fields[i].name == "gender")
+			{
+
+				var genderValue = form.querySelector("input[name='gender']:checked").value;
+				formData.append(fields[i].name, genderValue);
+
+			} else if (fields[i].name == "file") {
+				if (!fields[i].files.length)
+				{
+
+					alert("Selecione um arquivo: ");
+					return;
+
+				} else {
+
+					var filesValue = fields[i].files;
+
+					for (var j = 0; j < fields[i].files.length; j++) {
+						formData.append("file[" + j + "]", filesValue[j]);
+					}
+				}
+			} else {
+				formData.append(fields[i].name, fields[i].value);
+			}
 		}
-		formData.append("age", age);
-		formData.append("gender", genderValue);
-		for (var i = 0; i < filesValue.length; i++)
-			formData.append("file[" + i + "]", filesValue[i]);
 
 		var ajaxReq = new XMLHttpRequest();
 		ajaxReq.open("POST", "http://localhost/upload-api/api/insert.php");
@@ -100,7 +89,5 @@
 	});
 
 </script>
-
 </body>
-
 </html>
